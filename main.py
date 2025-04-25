@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from handlers import start, add_task, show_tasks, handle_task_selection
 from buttons import main_keyboard, task_keyboard, task_details_keyboard
 import logging
