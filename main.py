@@ -1,5 +1,5 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler, ContextTypes
 import logging
 import time
 import httpx
@@ -14,6 +14,7 @@ SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TAS
 
 # Хранение задач (в реальной разработке лучше использовать базу данных)
 tasks = []
+user_progress = {}
 
 # Функция старта
 async def start(update: Update, context):
@@ -148,10 +149,16 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
                 raise  # После последней попытки выбрасываем исключение
 
 # Обработчик команды /start
-async def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    
+    # Сбрасываем прогресс пользователя
+    if user_id in user_progress:
+        del user_progress[user_id]
+
     try:
-        # Теперь используем context.bot для отправки сообщения
-        await send_message_with_retry(context.bot, update.message.chat_id, "Привет! Я готов работать.")
+        # Сообщение о сбросе прогресса и приветствие
+        await send_message_with_retry(context.bot, user_id, "Привет! Я сбросил прогресс и готов работать с тобой снова.")
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {e}")
 
