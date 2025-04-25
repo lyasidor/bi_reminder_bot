@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from handlers import start, add_task, show_tasks, handle_task_selection
 from buttons import main_keyboard, task_keyboard, task_details_keyboard
 import logging
@@ -10,22 +10,19 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 def main():
-    # Создаем объект Updater и получаем диспетчера для добавления обработчиков
-    updater = Updater("YOUR_BOT_API_TOKEN", use_context=True)
-
-    dp = updater.dispatcher
+    # Создаем объект Application (новый интерфейс)
+    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
 
     # Обработчики команд
-    dp.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", start))
 
-    # Обработчики сообщений и кнопок
-    dp.add_handler(CallbackQueryHandler(add_task, pattern="^add_task$"))
-    dp.add_handler(CallbackQueryHandler(show_tasks, pattern="^show_tasks$"))
-    dp.add_handler(CallbackQueryHandler(handle_task_selection, pattern="^task_"))
+    # Обработчики кнопок
+    application.add_handler(CallbackQueryHandler(add_task, pattern="^add_task$"))
+    application.add_handler(CallbackQueryHandler(show_tasks, pattern="^show_tasks$"))
+    application.add_handler(CallbackQueryHandler(handle_task_selection, pattern="^task_"))
 
     # Запуск бота
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
