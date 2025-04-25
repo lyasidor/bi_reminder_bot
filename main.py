@@ -31,9 +31,10 @@ async def main():
     application.add_handler(conv_handler)
     application.add_handler(CallbackQueryHandler(handle_button_click))
 
-    # Запускаем бота
-    await application.run_polling()
+    # Запускаем бота (асинхронно)
+    application.run_polling()
 
+# Если код запускается напрямую
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(main())
+    asyncio.run(main())  # Убираем этот вызов
