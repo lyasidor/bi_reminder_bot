@@ -18,6 +18,13 @@ async def start_add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Какую задачу добавишь?", reply_markup=back_markup())
     return States.TASK_NAME
 
+async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not tasks:
+        await update.message.reply_text("У тебя нет задач.", reply_markup=start_markup)
+        return
+    message = "\n".join([f"{i}. {t['task_name']} — {t['task_date']} {t['task_time']}" for i, t in tasks.items()])
+    await update.message.reply_text("Список задач:\n\n" + message, reply_markup=start_markup)
+
 async def task_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text == "🔙 Назад":
