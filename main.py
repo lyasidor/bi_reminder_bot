@@ -1,34 +1,36 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler, CallbackQueryHandler
-from handlers import task_name, task_date, time, task_comment, show_tasks, delete_task, start
-from database import add_task_to_db, get_tasks_from_db, delete_task_from_db
-from keyboard import get_task_buttons, get_task_list_buttons
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, ConversationHandler
+from handlers import start, handle_button_click, handle_text
+from states import ADD_TASK, CHOOSE_DATE, ENTER_TIME, ENTER_COMMENT, LIST_TASKS
+from keyboard import start_keyboard, back_button
+import logging
 
-# Определяем состояния для ConversationHandler
-TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
+# Настройки
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def main():
-    application = Application.builder().token('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o').build()
+    updater = Updater('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o', use_context=True)
+    dp = updater.dispatcher
 
-    # Обработчики
-    conversation_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
-
+    # Главный разговор
+    conv_handler = ConversationHandler(
+        entry_points=[CallbackQueryHandler(start, pattern='^start$')],
         states={
-            TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_name)],
-            TASK_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_date)],
-            TASK_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, time)],
-            TASK_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_comment)],
+            ADD_TASK: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
+            CHOOSE_DATE: [CallbackQueryHandler(handle_button_click, pattern='^date_')],
+            ENTER_TIME: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
+            ENTER_COMMENT: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
+            LIST_TASKS: [CallbackQueryHandler(handle_button_click, pattern='^task_')]
         },
-
         fallbacks=[],
     )
 
-    application.add_handler(conversation_handler)
-    application.add_handler(CallbackQueryHandler(show_tasks, pattern='^show_tasks$'))
-    application.add_handler(CallbackQueryHandler(delete_task, pattern='^delete_task_'))
+    dp.add_handler(conv_handler)
+    dp.add_handler(CallbackQueryHandler(handle_button_click))
 
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
