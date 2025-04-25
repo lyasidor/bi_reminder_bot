@@ -25,7 +25,9 @@ def get_task_by_id(task_id):
     conn = get_db_connection()
     task = conn.execute('SELECT * FROM tasks WHERE id = ?', (task_id,)).fetchone()
     conn.close()
-    return task
+    if task:
+        return dict(task)  # Возвращаем результат как словарь
+    return None
 
 # Удаление задачи из базы данных
 def delete_task_from_db(task_id):
