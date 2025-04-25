@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 from database import add_task_to_db, get_tasks_from_db, delete_task_from_db
-from keyboard import get_back_button, get_task_buttons, get_task_lists_buttons
+from keyboard import get_back_button, get_task_list_buttons, get_task_buttons
 
 TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
