@@ -1,6 +1,9 @@
 import os
 import logging
-logging.basicConfig(level=logging.DEBUG)
+import datetime
+import pytz
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.date import DateTrigger
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram.ext import ConversationHandler
@@ -9,6 +12,11 @@ from handlers import get_conv_handler, list_tasks
 
 load_dotenv()
 token = os.getenv("TELEGRAM_TOKEN")
+
+logging.basicConfig(level=logging.DEBUG)
+
+scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
+scheduler.start()
 
 if not token:
     raise ValueError("Токен не найден в .env файле!")

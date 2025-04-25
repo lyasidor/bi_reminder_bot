@@ -1,11 +1,90 @@
-import tasks
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
-    ConversationHandler, CommandHandler, MessageHandler, filters, ContextTypes
+    ConversationHandler, CommandHandler, MessageHandler, filters, ContextTypes, CallbackContext
 )
 from keyboards import start_markup, generate_date_keyboard, back_markup, skip_or_back_markup
 from states import States
 from tasks import create_task, get_user_tasks, delete_task, get_task_by_id
+from timezonefinder import TimezoneFinder
+import pytz
+import datetime
+import tasks
+
+TASK_NAME, DATE, TIME, REMINDER, COMMENT = range(5)
+
+# Функция для получения часового пояса по местоположению
+def get_timezone_by_location(latitude, longitude):
+    tz_finder = TimezoneFinder()
+    timezone_str = tz_finder.timezone_at(lng=longitude, lat=latitude)
+    if timezone_str is None:
+        # Если не удалось определить часовой пояс, используем по умолчанию
+        timezone_str = 'Europe/Moscow'
+    return pytz.timezone(timezone_str)
+
+# Словарь для хранения часовых поясов пользователей
+user_timezones = {}
+
+def set_timezone(update: Update, context: CallbackContext):
+    # Получаем местоположение пользователя
+    user_location = update.message.location
+    if user_location:
+        latitude = user_location.latitude
+        longitude = user_location.longitude
+        timezone = get_timezone_by_location(latitude, longitude)
+
+        # Сохраняем часовой пояс пользователя
+        user_timezones[update.message.chat_id] = timezone
+
+        update.message.reply_text(f"Часовой пояс установлен: {timezone.zone}")
+    else:
+        update.message.reply_text("Пожалуйста, отправьте ваше местоположение.")
+
+def get_user_timezone(chat_id):
+    return user_timezones.get(chat_id, pytz.timezone("Europe/Moscow"))
+
+async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
+    job_data = context.job.data
+    task = job_data['task']
+
+    user_id = task['user_id']
+    task_name = task['task_name']
+    task_datetime = task['task_datetime']
+    task_comment = task.get('task_comment', 'Нет комментария')
+
+    # Отправка напоминания
+    await context.bot.send_message(
+        chat_id=user_id,
+        text=(
+            f"🔔 Напоминание!\n\n"
+            f"Задача: {task_name}\n"
+            f"Время: {task_datetime.strftime('%d-%m-%Y %H:%M')}\n"
+            f"Комментарий: {task_comment}"
+        )
+    )
+
+async def time(update: Update, context: CallbackContext):
+    try:
+        task_time = update.message.text.strip()
+        task_datetime_str = f"{context.user_data['task_date']} {task_time}"
+
+        # Получаем часовой пояс пользователя
+        user_timezone = get_user_timezone(update.message.chat_id)
+
+        # Преобразуем строку времени в объект datetime с учётом часового пояса пользователя
+        task_datetime = datetime.datetime.strptime(task_datetime_str, "%d-%m-%Y %H:%M")
+        task_datetime = user_timezone.localize(task_datetime)
+
+        # Проверка, не является ли время в прошлом
+        if task_datetime < datetime.datetime.now(user_timezone):
+            await update.message.reply_text("Это время уже прошло. Пожалуйста, выберите другое время.")
+            return TIME
+
+        context.user_data['task_time'] = task_time
+        await update.message.reply_text("Теперь, напишите количество минут до события, за которое я должен напомнить.")
+        return REMINDER
+    except ValueError:
+        await update.message.reply_text("Неверный формат времени. Пожалуйста, введите время в формате ЧЧ:ММ.")
+        return TIME
 
 # Хранилище временных данных пользователей
 user_data_store = {}
