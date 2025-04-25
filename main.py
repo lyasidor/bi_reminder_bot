@@ -1,8 +1,11 @@
+import os
 from telegram import Update
+from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-# Твой токен
-TOKEN = "7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o"
+load_dotenv() 
+
+TOKEN = os.getenv("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o")  # Получаем токен из переменной окружения
 
 # Функция для команды /start
 async def start(update: Update, context):
