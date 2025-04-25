@@ -137,7 +137,7 @@ async def back_to_main_menu(update: Update, context):
 async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
     for attempt in range(retries):
         try:
-            await bot.send_message(chat_id=chat_id, text=text)
+            await bot.send_message(chat_id=chat_id, text="Привет! Я помогу тебе с задачами. Выбери действие:")
             break  # Успех, выходим из цикла
         except httpx.RequestError as e:
             if attempt < retries - 1:
