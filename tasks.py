@@ -1,22 +1,32 @@
-from datetime import datetime, timedelta
-from telegram import KeyboardButton, ReplyKeyboardMarkup
-from timezonefinder import TimezoneFinder
-import pytz
+from sqlalchemy import create_engine, Column, Integer, String, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import datetime
 
-tasks = {}
+Base = declarative_base()
 
-def get_new_task_id():
-    return max(tasks.keys(), default=0) + 1
+class Task(Base):
+    __tablename__ = 'tasks'
 
-def generate_date_keyboard():
-    today = datetime.now()
-    buttons = [[(today + timedelta(days=i)).strftime("%d-%m-%Y")] for i in range(5)]
-    return ReplyKeyboardMarkup(buttons, one_time_keyboard=True, resize_keyboard=True)
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    due_date = Column(DateTime, nullable=False)
+    reminder_time = Column(Integer, nullable=False)  # В минутах
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-def get_timezone_by_location(lat, lon):
-    tf = TimezoneFinder()
-    tz_name = tf.timezone_at(lat=lat, lng=lon)
-    return pytz.timezone(tz_name) if tz_name else pytz.utc
+# Создаем подключение к базе данных
+engine = create_engine('sqlite:///tasks.db')  # Поменяйте на вашу строку подключения
+Session = sessionmaker(bind=engine)
+session = Session()
 
-def get_local_time(utc_dt, tz):
-    return utc_dt.astimezone(tz)
+# Создание таблиц (если они еще не созданы)
+Base.metadata.create_all(engine)
+
+def add_task_to_db(task_name, due_date, reminder_time):
+    new_task = Task(name=task_name, due_date=due_date, reminder_time=reminder_time)
+    session.add(new_task)
+    session.commit()
+    return new_task
+
+def get_all_tasks():
+    return session.query(Task).all()

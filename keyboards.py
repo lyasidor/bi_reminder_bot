@@ -1,36 +1,25 @@
-from telegram import ReplyKeyboardMarkup, KeyboardButton
-from datetime import datetime, timedelta
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
-def start_markup():
-    return ReplyKeyboardMarkup(
-        [
-            [KeyboardButton("➕ Добавить задачу")],
-            [KeyboardButton("📋 Список задач")]
-        ],
-        resize_keyboard=True
-    )
+# Клавиатура для основного меню
+def start_keyboard():
+    keyboard = [
+        [KeyboardButton('Показать задачи')],
+        [KeyboardButton('Добавить задачу')]
+    ]
+    return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
 
-def generate_date_keyboard():
-    today = datetime.now().date()
-    keyboard = []
-    row = []
-    for i in range(14):
-        day = today + timedelta(days=i)
-        button = KeyboardButton(day.strftime("%d-%m-%Y"))
-        row.append(button)
-        if len(row) == 2:
-            keyboard.append(row)
-            row = []
-    if row:
-        keyboard.append(row)
-    keyboard.append([KeyboardButton("🔙 Назад")])
-    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+# Клавиатура для выбора действия с задачей
+def task_action_keyboard():
+    keyboard = [
+        [InlineKeyboardButton('Изменить задачу', callback_data='edit_task')],
+        [InlineKeyboardButton('Удалить задачу', callback_data='delete_task')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
-def skip_or_back_markup():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("Пропустить")], [KeyboardButton("🔙 Назад")]],
-        resize_keyboard=True
-    )
-
-def back_markup():
-    return ReplyKeyboardMarkup([[KeyboardButton("🔙 Назад")]], resize_keyboard=True)
+# Клавиатура для подтверждения действия (например, подтверждения удаления)
+def confirmation_keyboard():
+    keyboard = [
+        [InlineKeyboardButton('Да', callback_data='yes')],
+        [InlineKeyboardButton('Нет', callback_data='no')]
+    ]
+    return InlineKeyboardMarkup(keyboard)
