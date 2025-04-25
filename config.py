@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Токен Telegram бота
-BOT_API_KEY = os.getenv("BOT_API_KEY")
+BOT_API_KEY = os.getenv("7777339725:AAHd7AkbFBYRrcUl4wwGdbDsKvBo0b0FMGk")
 
 # Параметры для работы с базой данных (если понадобится)
 DATABASE_URI = os.getenv("DATABASE_URI", "sqlite:///tasks.db")
