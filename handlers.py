@@ -1,44 +1,97 @@
-from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackContext
+from database import add_task_to_db, get_tasks_from_db, delete_task_from_db
+from datetime import datetime, timedelta
 
-# Определение состояний
-TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
+# Приветственное сообщение и кнопки
+async def start(update: Update, context: CallbackContext) -> int:
+    keyboard = [
+        [InlineKeyboardButton("➕ Добавить задачу", callback_data="add_task")],
+        [InlineKeyboardButton("📝 Список задач", callback_data="show_tasks")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Привет! Я твой бот-напоминалка. Что ты хочешь сделать?",
+        reply_markup=reply_markup
+    )
+    return 0
 
-# Функция для обработки команды /start
-async def task_name(update: Update, context: CallbackContext) -> int:
-    await update.message.reply_text("Привет! Давай начнем. Напиши название задачи.")
-    return TASK_NAME
+# Начало добавления задачи
+async def add_task(update: Update, context: CallbackContext) -> int:
+    await update.message.reply_text(
+        "Напиши название задачи."
+    )
+    return 1
 
-# Функция для обработки ввода названия задачи
+# Обработка названия задачи
 async def task_name(update: Update, context: CallbackContext) -> int:
     context.user_data['task_name'] = update.message.text
-    await update.message.reply_text("Отлично! Теперь выбери дату задачи.")
-    return TASK_DATE
+    # Генерация кнопок для выбора даты
+    today = datetime.today()
+    dates = [today + timedelta(days=i) for i in range(14)]
+    keyboard = [[InlineKeyboardButton(date.strftime('%d.%m.%Y'), callback_data=f"date_{date.strftime('%d.%m.%Y')}") for date in dates[i:i+3]] for i in range(0, len(dates), 3)]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Выберите дату задачи:", reply_markup=reply_markup)
+    return 2
 
-# Функция для обработки ввода даты
+# Обработка даты задачи
 async def task_date(update: Update, context: CallbackContext) -> int:
     context.user_data['task_date'] = update.message.text
-    await update.message.reply_text("Теперь, напиши время задачи в формате ЧЧ:ММ.")
-    return TASK_TIME
+    await update.message.reply_text(
+        "Теперь укажи время задачи (формат: ЧЧ:ММ)."
+    )
+    return 3
 
-# Функция для обработки ввода времени
-async def time(update: Update, context: CallbackContext) -> int:
+# Обработка времени задачи
+async def task_time(update: Update, context: CallbackContext) -> int:
     try:
         time_input = update.message.text
-        # Валидация формата времени
         hour, minute = map(int, time_input.split(":"))
         if not (0 <= hour < 24 and 0 <= minute < 60):
-            raise ValueError("Неверный формат времени.")
+            raise ValueError
         context.user_data['task_time'] = time_input
-        await update.message.reply_text("Здорово! Теперь, если хочешь, можешь ввести комментарий к задаче, или просто напиши 'Пропустить'.")
-        return TASK_COMMENT
+        await update.message.reply_text(
+            "Задача создана! Теперь, если хочешь, можешь ввести комментарий или просто пропустить."
+        )
+        return 4
     except ValueError:
-        await update.message.reply_text("Ошибка! Пожалуйста, введите время в формате ЧЧ:ММ.")
-        return TASK_TIME
+        await update.message.reply_text("Неверный формат времени! Попробуй снова (ЧЧ:ММ).")
+        return 3
 
-# Функция для обработки комментария
+# Обработка комментария
 async def task_comment(update: Update, context: CallbackContext) -> int:
     context.user_data['task_comment'] = update.message.text if update.message.text.lower() != 'пропустить' else None
-    # Завершаем задачу
-    await update.message.reply_text("Задача успешно добавлена! Смотри свой список задач.")
-    return ConversationHandler.END
+    # Сохранение задачи в базе данных
+    add_task_to_db(context.user_data['task_name'], context.user_data['task_date'], context.user_data['task_time'], context.user_data.get('task_comment'))
+    await update.message.reply_text("Задача добавлена!")
+    return 0
+
+# Показать задачи
+async def show_tasks(update: Update, context: CallbackContext) -> int:
+    tasks = get_tasks_from_db()
+    keyboard = [
+        [InlineKeyboardButton(f"{task['name']} - {task['date']} - {task['time']}", callback_data=f"task_details_{task['id']}") for task in tasks]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Список задач:", reply_markup=reply_markup)
+    return 0
+
+# Показать детали задачи
+async def task_details(update: Update, context: CallbackContext) -> int:
+    task_id = update.callback_query.data.split("_")[2]
+    task = get_task_by_id(task_id)
+    details = f"Задача: {task['name']}\nДата: {task['date']}\nВремя: {task['time']}\nКомментарий: {task['comment'] if task['comment'] else 'Нет'}"
+    keyboard = [
+        [InlineKeyboardButton("❌ Удалить задачу", callback_data=f"delete_task_{task['id']}")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="show_tasks")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(details, reply_markup=reply_markup)
+    return 0
+
+# Удалить задачу
+async def delete_task(update: Update, context: CallbackContext) -> int:
+    task_id = update.callback_query.data.split("_")[2]
+    delete_task_from_db(task_id)
+    await update.callback_query.message.edit_text("Задача удалена!")
+    return 0
