@@ -1,32 +1,29 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler
-from handlers import start, add_task, list_tasks, task_name, task_date, task_time, task_comment, cancel
-from states import STATES
+from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
+from handlers import task_name, task_date, time, task_comment
 
-async def main():
-    # Создание приложения с токеном бота
-    application = Application.builder().token('YOUR_BOT_API_KEY').build()
+# Определяем состояния для ConversationHandler
+TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
-    # Обработчики команд
-    application.add_handler(CommandHandler("start", start))
+def main():
+    application = Application.builder().token('YOUR_TOKEN').build()
 
-    # Обработчики задач
+    # Обработчики
     conversation_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[CommandHandler('start', task_name)],
+
         states={
-            STATES.TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_name)],
-            STATES.TASK_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_date)],
-            STATES.TASK_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_time)],
-            STATES.TASK_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_comment)],
+            TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_name)],  # Ввод названия задачи
+            TASK_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_date)],  # Ввод даты
+            TASK_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, time)],       # Ввод времени
+            TASK_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_comment)],  # Ввод комментария
         },
-        fallbacks=[CommandHandler("cancel", cancel)]
+
+        fallbacks=[],
     )
 
     application.add_handler(conversation_handler)
+    application.run_polling()
 
-    # Запуск бота
-    await application.run_polling()
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+if __name__ == '__main__':
+    main()
