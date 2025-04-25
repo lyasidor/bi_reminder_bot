@@ -133,7 +133,7 @@ async def back_to_main_menu(update: Update, context):
 
 # Основная функция
 def main():
-    application = Application.builder().token("YOUR_BOT_API_TOKEN").build()
+    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start), MessageHandler(filters.TEXT, action_handler)],
