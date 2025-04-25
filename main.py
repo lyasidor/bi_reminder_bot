@@ -87,6 +87,16 @@ async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         task_list = "\n".join([f"{task['name']} - {task['time']}" for task in tasks])
         await send_message_with_retry(context.bot, user_id, f"Ваши задачи:\n{task_list}")
 
+# Обработчик нажатия кнопок
+async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    button_text = update.message.text
+
+    if button_text == "Добавить задачу ✅":
+        await add_task(update, context)
+    elif button_text == "Список задач 📋":
+        await list_tasks(update, context)
+
 # Обработчик сообщений (например, для ввода названия задачи)
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
@@ -152,14 +162,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Главная функция для запуска бота
 def main():
-    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
+    application = Application.builder().token("YOUR_TOKEN").build()
 
     # Обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("add_task", add_task))
-    application.add_handler(CommandHandler("list_tasks", list_tasks))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT, handle_button_click))
 
     # Запуск бота
     application.run_polling()
