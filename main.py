@@ -1,7 +1,7 @@
 import asyncio
 from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
 from handlers import get_conv_handler, list_tasks_handler
-from scheduler import scheduler
+from sсheduler import scheduler
 
 from config import BOT_TOKEN
 
