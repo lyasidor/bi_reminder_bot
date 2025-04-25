@@ -134,10 +134,11 @@ async def back_to_main_menu(update: Update, context):
     await update.message.reply_text("Выберите действие:", reply_markup=reply_markup)
     return SELECT_ACTION
 
+# Функция с повторными попытками
 async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
     for attempt in range(retries):
         try:
-            await bot.send_message(chat_id, text)
+            await bot.send_message(chat_id=chat_id, text=text)
             break  # Успех, выходим из цикла
         except httpx.RequestError as e:
             if attempt < retries - 1:
@@ -146,12 +147,14 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
             else:
                 raise  # После последней попытки выбрасываем исключение
 
-# Пример использования в основном обработчике
+# Обработчик команды /start
 async def start(update, context):
     try:
-        await send_message_with_retry(update.message.chat_id, "Привет! Я готов работать.")
+        # Теперь передаем chat_id и текст в send_message_with_retry
+        await send_message_with_retry(update.message.bot, update.message.chat_id, "Привет! Я готов работать.")
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {e}")
+
 
 # Основная функция
 def main():
@@ -171,6 +174,8 @@ def main():
     )
 
     application.add_handler(conv_handler)
+
+    application.add_handler(CommandHandler("start", start))
 
     application.run_polling()
 
