@@ -5,9 +5,10 @@ async def main():
     application = Application.builder().token("YOUR_BOT_TOKEN").build()
     application.add_handler(conv_handler)
     
-    # Запуск бота
+    # Запуск бота с polling
     await application.run_polling()
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    # Запускаем приложение без использования asyncio.run()
+    asyncio.get_event_loop().run_until_complete(main())
