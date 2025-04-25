@@ -1,20 +1,17 @@
-from telegram.ext import Updater, CallbackQueryHandler, CommandHandler
+from telegram import Update
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler
 from handlers import start, button_handler
 
 def main():
     """Запуск бота"""
-    updater = Updater("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o", use_context=True)
-    dispatcher = updater.dispatcher
+    application = Application.builder().token("YOUR_BOT_API_TOKEN").build()
 
     # Добавляем обработчики команд
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
 
     # Запускаем бота
-    updater.start_polling()
-
-    # Бот будет работать до тех пор, пока не будет остановлен вручную
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
