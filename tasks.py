@@ -1,29 +1,27 @@
-tasks = []
+from apscheduler.schedulers.background import BackgroundScheduler
 
-# Функция добавления задачи
-def add_new_task(name, date, time, comment=None):
-    task = {
-        "name": name,
-        "date": date,
-        "time": time,
-        "comment": comment
-    }
-    tasks.append(task)
+scheduler = BackgroundScheduler()
 
-# Получить список задач
-def get_task_list():
-    return tasks
+def send_reminder(task):
+    # Функция для отправки напоминания
+    # Например, отправить сообщение пользователю
+    pass
 
-# Получить подробности задачи
-def get_task_details(task_id):
-    try:
-        return tasks[int(task_id)]  # Преобразуем ID в индекс списка
-    except IndexError:
-        return None
+def schedule_reminders(task):
+    # Добавление напоминания за 1 день, 12 часов и т.д.
+    scheduler.add_job(send_reminder, 'date', run_date=task.date, args=[task])
+    # Здесь нужно добавить напоминания для всех времени (1 день, 12 часов и так далее)
 
-# Удалить задачу
-def delete_task(task_id):
-    try:
-        tasks.pop(int(task_id))  # Удаление задачи по индексу
-    except IndexError:
-        return None
+
+class Task:
+    def __init__(self, name, date, time, comment=None):
+        self.name = name
+        self.date = date
+        self.time = time
+        self.comment = comment
+
+task_list = []
+
+def add_task_to_list(name, date, time, comment=None):
+    task = Task(name, date, time, comment)
+    task_list.append(task)

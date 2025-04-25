@@ -1,17 +1,25 @@
-from telegram import Update
-from telegram.ext import Application, CallbackQueryHandler, CommandHandler
-from handlers import start, button_handler
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from handlers import start, add_task, show_tasks, delete_task
+from buttons import start_buttons, back_button, task_buttons
 
 def main():
-    """Запуск бота"""
-    application = Application.builder().token("YOUR_BOT_API_TOKEN").build()
+    # Замените на свой токен
+    TOKEN = '7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o'
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
 
-    # Добавляем обработчики команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
+    # Обработчики команд
+    dp.add_handler(CommandHandler("start", start))
 
-    # Запускаем бота
-    application.run_polling()
+    # Обработчики кнопок
+    dp.add_handler(CallbackQueryHandler(add_task, pattern='^add_task$'))
+    dp.add_handler(CallbackQueryHandler(show_tasks, pattern='^show_tasks$'))
+    dp.add_handler(CallbackQueryHandler(delete_task, pattern='^delete_task_'))
+
+    # Запуск бота
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
