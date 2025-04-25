@@ -1,35 +1,37 @@
-import os
+import asyncio
 import logging
-import datetime
-import pytz
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.date import DateTrigger
-from dotenv import load_dotenv
-from telegram.ext import ApplicationBuilder, CommandHandler
-from telegram.ext import ConversationHandler
+from telegram.ext import Application, ContextTypes
 
 from handlers import get_conv_handler, list_tasks
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-load_dotenv()
-token = os.getenv("TELEGRAM_TOKEN")
+# Настройка логов
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 
-logging.basicConfig(level=logging.DEBUG)
+# Токен бота
+TOKEN = "YOUR_TOKEN_HERE"  # замените на ваш реальный токен
 
-scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
-scheduler.start()
+# Создание планировщика
+scheduler = AsyncIOScheduler()
 
-if not token:
-    raise ValueError("Токен не найден в .env файле!")
+async def main():
+    # Запуск планировщика
+    scheduler.start()
 
-def main():
-    app = ApplicationBuilder().token(token).build()
+    # Создание приложения Telegram
+    application = Application.builder().token(TOKEN).build()
 
-    # Добавляем обработчики
-    app.add_handler(get_conv_handler())
-    app.add_handler(CommandHandler("tasks", list_tasks))
+    # Добавление обработчиков
+    application.add_handler(get_conv_handler())
+    application.add_handler(list_tasks)
 
-    print("Бот запущен...")
-    app.run_polling()
+    # Сохраняем планировщик в context, если потребуется из обработчиков
+    application.bot_data["scheduler"] = scheduler
+
+    # Запуск бота
+    await application.run_polling()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
