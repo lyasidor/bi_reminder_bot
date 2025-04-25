@@ -6,7 +6,7 @@ from handlers import task_name, task_date, time, task_comment
 TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
 def main():
-    application = Application.builder().token('BOT_API_KEY').build()
+    application = Application.builder().token('7777339725:AAHd7AkbFBYRrcUl4wwGdbDsKvBo0b0FMGk').build()
 
     # Обработчики
     conversation_handler = ConversationHandler(
