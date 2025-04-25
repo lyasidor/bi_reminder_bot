@@ -1,121 +1,159 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, MessageHandler, filters, CallbackQueryHandler
-
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import (
+    ConversationHandler, CommandHandler, MessageHandler, filters, ContextTypes
+)
 from keyboards import start_markup, generate_date_keyboard, back_markup, skip_or_back_markup
-from states import *
-from tasks import tasks, get_new_task_id
-import datetime
-import re
+from states import States
+from tasks import create_task, get_user_tasks, delete_task, get_task_by_id
+
+# Хранилище временных данных пользователей
+user_data_store = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Выбери действие:",
-        reply_markup=start_markup()
-    )
-    return CHOOSING
+    await update.message.reply_text("Привет! Что будем делать?", reply_markup=start_markup())
+    return ConversationHandler.END
 
-async def choose_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    choice = update.message.text
-    if choice == "Добавить задачу":
-        await update.message.reply_text("Какую задачу добавишь?", reply_markup=back_markup())
-        return TASK_NAME
-    elif choice == "Список задач":
-        return await list_tasks(update, context)
-    else:
-        await update.message.reply_text("Пожалуйста, выбери действие с кнопок.")
-        return CHOOSING
+async def start_add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_data_store[update.effective_user.id] = {"history": []}
+    await update.message.reply_text("Какую задачу добавишь?", reply_markup=back_markup())
+    return States.TASK_NAME
 
 async def task_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['task_name'] = update.message.text
-    await update.message.reply_text("Выбери дату:", reply_markup=generate_date_keyboard())
-    return DATE
+    text = update.message.text
+    if text == "🔙 Назад":
+        return await start(update, context)
+    context.user_data["task_name"] = text
+    await update.message.reply_text("Выбери дату", reply_markup=generate_date_keyboard())
+    return States.DATE
 
-async def date(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['task_date'] = update.callback_query.data
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Напиши время в формате хх:хх (например, 18:24):", reply_markup=back_markup())
-    return TIME
+async def task_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        await update.message.reply_text("Какую задачу добавишь?", reply_markup=back_markup())
+        return States.TASK_NAME
+    context.user_data["task_date"] = text
+    await update.message.reply_text("Напиши время в формате ЧЧ:ММ (например, 18:24)", reply_markup=back_markup())
+    return States.TIME
 
-async def time(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if re.match(r"\d{2}:\d{2}", update.message.text):
-        context.user_data['task_time'] = update.message.text
-        await update.message.reply_text("За сколько минут до начала напомнить?", reply_markup=back_markup())
-        return REMINDER
-    await update.message.reply_text("Введи корректное время в формате хх:хх", reply_markup=back_markup())
-    return TIME
+async def task_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        await update.message.reply_text("Выбери дату", reply_markup=generate_date_keyboard())
+        return States.DATE
+    if not text or not validate_time_format(text):
+        await update.message.reply_text("Введи корректное время в формате ЧЧ:ММ")
+        return States.TIME
+    context.user_data["task_time"] = text
+    await update.message.reply_text("Напиши в минутах, за сколько времени до начала события я должен тебя предупредить", reply_markup=back_markup())
+    return States.REMINDER_MINUTES
 
-async def reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text.isdigit():
-        context.user_data['reminder'] = int(update.message.text)
-        await update.message.reply_text("Введи комментарий к задаче или нажми 'Пропустить'", reply_markup=skip_or_back_markup())
-        return COMMENT
-    await update.message.reply_text("Введи число минут", reply_markup=back_markup())
-    return REMINDER
+async def task_minutes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        await update.message.reply_text("Напиши время в формате ЧЧ:ММ (например, 18:24)", reply_markup=back_markup())
+        return States.TIME
+    if not text.isdigit():
+        await update.message.reply_text("Введи число минут")
+        return States.REMINDER_MINUTES
+    context.user_data["reminder_minutes"] = int(text)
+    await update.message.reply_text("Введи комментарий к задаче или нажми 'Пропустить'", reply_markup=skip_or_back_markup())
+    return States.COMMENT
 
-async def comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    comment = update.message.text
-    if comment.lower() == "пропустить":
-        comment = ""
-    context.user_data['comment'] = comment
+async def task_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        await update.message.reply_text("Напиши в минутах, за сколько времени до начала события я должен тебя предупредить", reply_markup=back_markup())
+        return States.REMINDER_MINUTES
+    context.user_data["comment"] = None if text == "Пропустить" else text
 
-    task_id = get_new_task_id()
-    tasks[task_id] = context.user_data.copy()
+    # Сохранение задачи
+    user_id = update.effective_user.id
+    create_task(user_id, context.user_data)
 
     await update.message.reply_text("Задача успешно создана!", reply_markup=start_markup())
-    return CHOOSING
+    return ConversationHandler.END
 
-async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def task_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    tasks = get_user_tasks(user_id)
+
     if not tasks:
-        await update.message.reply_text("У тебя нет задач.", reply_markup=start_markup())
-        return CHOOSING
-    buttons = []
-    for i, (task_id, task) in enumerate(tasks.items()):
-        text = f"{task['task_name']} – {task['task_date']} {task['task_time']}"
-        buttons.append(InlineKeyboardButton(text, callback_data=f"detail_{task_id}"))
+        await update.message.reply_text("У тебя пока нет задач.", reply_markup=start_markup())
+        return ConversationHandler.END
 
-    keyboard = [buttons[i:i+2] for i in range(0, len(buttons), 2)]
-    keyboard.append([InlineKeyboardButton("Назад", callback_data="back_to_menu")])
+    reply = "Вот твои задачи:\n\n"
+    keyboard = []
+    row = []
 
-    await update.message.reply_text("Список задач:", reply_markup=InlineKeyboardMarkup(keyboard))
-    return TASK_LIST
+    for i, task in enumerate(tasks[:10], 1):
+        btn = f"{i}. {task['name']}"
+        row.append(btn)
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
 
-async def task_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    task_id = int(query.data.replace("detail_", ""))
-    task = tasks.get(task_id)
-    await query.answer()
+    keyboard.append(["🔙 Назад"])
 
-    text = f"Название задачи: {task['task_name']}\nДата: {task['task_date']}, Время: {task['task_time']}\nКомментарий: {task['comment'] or 'нет'}"
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Удалить задачу", callback_data=f"delete_{task_id}")],
-        [InlineKeyboardButton("Назад", callback_data="back_to_list")]
-    ])
-    await query.edit_message_text(text, reply_markup=keyboard)
-    return TASK_DETAILS
+    context.user_data["tasks"] = tasks
+    await update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    return States.TASK_VIEW
 
-async def delete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    task_id = int(update.callback_query.data.replace("delete_", ""))
-    tasks.pop(task_id, None)
-    await update.callback_query.answer("Задача удалена.")
-    return await list_tasks(update, context)
+async def task_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        return await start(update, context)
+    
+    if not text[0].isdigit():
+        await update.message.reply_text("Выбери задачу из списка.")
+        return States.TASK_VIEW
 
-async def back_to_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Выбери действие:", reply_markup=start_markup())
-    return CHOOSING
+    index = int(text.split(".")[0]) - 1
+    task = context.user_data["tasks"][index]
+    context.user_data["current_task"] = task
+
+    reply = (
+        f"Название задачи: {task['name']}\n"
+        f"{task['date']}, {task['time']}\n\n"
+        f"{task.get('comment', 'Без комментария')}"
+    )
+    keyboard = [["Удалить задачу"], ["🔙 Назад"]]
+    await update.message.reply_text(reply, reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+    return States.TASK_ACTION
+
+async def task_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text == "🔙 Назад":
+        return await task_list(update, context)
+
+    if text == "Удалить задачу":
+        delete_task(update.effective_user.id, context.user_data["current_task"])
+        await update.message.reply_text("Задача удалена.", reply_markup=start_markup())
+        return ConversationHandler.END
+
+def validate_time_format(time_str):
+    try:
+        hours, minutes = map(int, time_str.split(":"))
+        return 0 <= hours < 24 and 0 <= minutes < 60
+    except:
+        return False
 
 def get_conv_handler():
     return ConversationHandler(
-        entry_points=[CommandHandler("start", start)],
+        entry_points=[
+            CommandHandler("start", start),
+            MessageHandler(filters.Regex("^➕ Добавить задачу$"), start_add_task),
+            MessageHandler(filters.Regex("^📋 Список задач$"), task_list)
+        ],
         states={
-            CHOOSING: [MessageHandler(filters.TEXT, choose_action)],
-            TASK_NAME: [MessageHandler(filters.TEXT, task_name)],
-            DATE: [CallbackQueryHandler(date)],
-            TIME: [MessageHandler(filters.TEXT, time)],
-            REMINDER: [MessageHandler(filters.TEXT, reminder)],
-            COMMENT: [MessageHandler(filters.TEXT, comment)],
-            TASK_LIST: [CallbackQueryHandler(task_details, pattern="^detail_"), CallbackQueryHandler(back_to_menu, pattern="^back_to_menu$")],
-            TASK_DETAILS: [CallbackQueryHandler(delete_task, pattern="^delete_"), CallbackQueryHandler(list_tasks, pattern="^back_to_list$")],
+            States.TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_name)],
+            States.DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_date)],
+            States.TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_time)],
+            States.REMINDER_MINUTES: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_minutes)],
+            States.COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_comment)],
+            States.TASK_VIEW: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_view)],
+            States.TASK_ACTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_action)],
         },
-        fallbacks=[]
+        fallbacks=[CommandHandler("start", start)],
     )
