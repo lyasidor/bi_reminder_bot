@@ -1,26 +1,22 @@
-user_tasks = {}
+from datetime import datetime, timedelta
+from telegram import KeyboardButton, ReplyKeyboardMarkup
+from timezonefinder import TimezoneFinder
+import pytz
 
-def create_task(user_id, task_data):
-    if user_id not in user_tasks:
-        user_tasks[user_id] = []
+tasks = {}
 
-    task = {
-        "name": task_data.get("task_name"),
-        "date": task_data.get("task_date"),
-        "time": task_data.get("task_time"),
-        "reminder_minutes": task_data.get("reminder_minutes"),
-        "comment": task_data.get("comment", "")
-    }
+def get_new_task_id():
+    return max(tasks.keys(), default=0) + 1
 
-    user_tasks[user_id].append(task)
+def generate_date_keyboard():
+    today = datetime.now()
+    buttons = [[(today + timedelta(days=i)).strftime("%d-%m-%Y")] for i in range(5)]
+    return ReplyKeyboardMarkup(buttons, one_time_keyboard=True, resize_keyboard=True)
 
-def get_user_tasks(user_id):
-    return user_tasks.get(user_id, [])
+def get_timezone_by_location(lat, lon):
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lat=lat, lng=lon)
+    return pytz.timezone(tz_name) if tz_name else pytz.utc
 
-def get_task_by_id(user_id, index):
-    return user_tasks.get(user_id, [])[index]
-
-def delete_task(user_id, task):
-    if user_id in user_tasks:
-        if task in user_tasks[user_id]:
-            user_tasks[user_id].remove(task)
+def get_local_time(utc_dt, tz):
+    return utc_dt.astimezone(tz)
