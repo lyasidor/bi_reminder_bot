@@ -13,10 +13,13 @@ conv_handler = ConversationHandler(
 )
 
 async def main():
-    application = Application.builder().token('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o').build()
+    application = Application.builder().token('YOUR_BOT_TOKEN').build()
     application.add_handler(conv_handler)
     await application.run_polling()
 
+# Запускаем бота без asyncio.run()
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(main())
+    # Вместо asyncio.run(main()), используем event loop напрямую
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
