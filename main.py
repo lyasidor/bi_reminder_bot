@@ -8,7 +8,7 @@ from keyboard import get_task_buttons, get_task_list_buttons
 TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
 def main():
-    application = Application.builder().token('YOUR_BOT_API_KEY').build()
+    application = Application.builder().token('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o').build()
 
     # Обработчики
     conversation_handler = ConversationHandler(
