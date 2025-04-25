@@ -1,29 +1,37 @@
 from telegram import Update
+from telegram.ext import CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters
 from telegram.ext import CallbackContext
 
-ADD_TASK, ENTER_TIME, ENTER_COMMENT = range(3)  # Пример состояний для ConversationHandler
+# Степы для ConversationHandler
+ADD_TASK, ENTER_TIME, ENTER_COMMENT = range(3)
 
-def handle_button_click(update: Update, context: CallbackContext):
+# start — обработка команды /start
+async def start(update: Update, context: CallbackContext) -> int:
+    # Код обработки /start
+    await update.message.reply_text("Привет! Давай начнем работу.")
+    return ADD_TASK  # Переход к следующему шагу
+
+# Обработчики для шагов в ConversationHandler
+async def handle_button_click(update: Update, context: CallbackContext) -> int:
+    # Код обработки кнопки
     query = update.callback_query
-    query.answer()
-    data = query.data
-    if data == 'start':
-        query.edit_message_text("Введите название задачи:")
-        return ADD_TASK
-    elif data.startswith('date_'):
-        query.edit_message_text(f"Вы выбрали дату: {data[5:]}")
-        return ENTER_TIME
+    await query.answer()
+    await query.edit_message_text("Введите название задачи:")
+    return ENTER_TIME  # Переход к следующему шагу
 
-async def handle_text(update: Update, context: CallbackContext):
-    user_input = update.message.text
-    if user_input:
-        await update.message.reply_text(f"Вы ввели: {user_input}")
-    else:
-        await update.message.reply_text("Пожалуйста, введите текст.")
+async def handle_text(update: Update, context: CallbackContext) -> int:
+    # Код для обработки введенного текста
+    task_name = update.message.text
+    await update.message.reply_text(f"Задача '{task_name}' добавлена.")
+    return ENTER_COMMENT  # Переход к следующему шагу
 
-# Обработчик команды /start
-async def start(update: Update, context: CallbackContext):
-    keyboard = [['Добавить задачу'], ['Список задач']]
-    reply_markup = {'keyboard': keyboard, 'one_time_keyboard': True, 'resize_keyboard': True}
-    await update.message.reply_text("Привет! Чем могу помочь?", reply_markup=reply_markup)
-    return ADD_TASK  # Переход к состоянию добавления задачи
+# Описание шагов в ConversationHandler
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('start', start)],  # Обработчик команды /start
+    states={
+        ADD_TASK: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_button_click)],
+        ENTER_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)],
+        ENTER_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text)],
+    },
+    fallbacks=[]  # Обработчик для завершения разговора (если нужен)
+)
