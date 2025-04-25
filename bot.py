@@ -7,7 +7,7 @@ TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
 # Инициализация приложения
 def main():
-    application = Application.builder().token('YOUR_BOT_TOKEN').build()
+    application = Application.builder().token('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o').build()
 
     # Команды
     application.add_handler(CommandHandler("start", start))

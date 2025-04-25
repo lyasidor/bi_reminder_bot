@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
-from database import add_task_to_db, get_tasks_from_db, delete_task_from_db
+from database import add_task_to_db, get_tasks_from_db, delete_task_from_db, get_task_by_id
 from datetime import datetime, timedelta
 
 # Приветственное сообщение и кнопки
