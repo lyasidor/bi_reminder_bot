@@ -29,4 +29,21 @@ def main():
     # Обработчики
     application.add_handler(CommandHandler("start", start))
     
-    # Дополнительные обработчики для кнопок
+    # Дополнительные обработчики для кнопок, сообщений, и других команд
+    # Например, для обработки нажатия на кнопки:
+    application.add_handler(CallbackQueryHandler(callback_query_handler))
+
+    # Запуск бота
+    application.run_polling()
+
+# Обработчик нажатия на кнопки
+async def callback_query_handler(update: Update, context):
+    query = update.callback_query
+    if query.data == 'add_task':
+        await query.answer("Добавление задачи...")
+    elif query.data == 'list_tasks':
+        await query.answer("Список задач...")
+
+if __name__ == "__main__":
+    main()
+
