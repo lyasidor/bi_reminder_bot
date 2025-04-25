@@ -7,7 +7,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Шаги для ConversationHandler
-SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TASKS = range(6)
+SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TASKS, BACK = range(7)
 
 # Хранение задач (в реальной разработке лучше использовать базу данных)
 tasks = []
@@ -133,7 +133,7 @@ async def back_to_main_menu(update: Update, context):
 
 # Основная функция
 def main():
-    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
+    application = Application.builder().token("YOUR_BOT_API_TOKEN").build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start), MessageHandler(filters.TEXT, action_handler)],
@@ -144,6 +144,7 @@ def main():
             ENTER_TIME: [MessageHandler(filters.TEXT, enter_time)],
             ENTER_COMMENT: [MessageHandler(filters.TEXT, enter_comment)],
             VIEW_TASKS: [MessageHandler(filters.TEXT, view_tasks)],
+            BACK: [MessageHandler(filters.TEXT, back_to_main_menu)],
         },
         fallbacks=[MessageHandler(filters.TEXT, back_to_main_menu)],
     )
@@ -154,4 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
