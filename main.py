@@ -1,4 +1,6 @@
 import os
+import logging
+logging.basicConfig(level=logging.DEBUG)
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram.ext import ConversationHandler
