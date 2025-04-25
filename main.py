@@ -1,4 +1,4 @@
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from handlers import start, add_task, show_tasks, delete_task
 from buttons import start_buttons, back_button, task_buttons
@@ -6,7 +6,7 @@ from buttons import start_buttons, back_button, task_buttons
 def main():
     # Замените на свой токен
     TOKEN = '7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o'
-    updater = Updater(TOKEN, use_context=True)
+    updater = Application(TOKEN, use_context=True)
     dp = updater.dispatcher
 
     # Обработчики команд
