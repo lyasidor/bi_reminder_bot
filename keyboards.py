@@ -1,3 +1,4 @@
+import datetime
 from telegram import ReplyKeyboardMarkup
 
 # Главное меню

@@ -1,5 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.datetime import DateTrigger
+from apscheduler.triggers.date import DateTrigger
 import datetime
 
 # Инициализация планировщика
