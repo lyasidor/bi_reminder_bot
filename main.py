@@ -162,15 +162,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Главная функция для запуска бота
 def main():
-    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o")
+    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
 
-    # Добавляем обработчики через add_handler
-    application.add_handler([
-        CommandHandler("start", start),
-        CommandHandler("help", help_command),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message),
-        MessageHandler(filters.TEXT, handle_button_click)
-    ])
+    # Добавляем обработчики для каждой команды
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT, handle_button_click))
 
     # Запуск бота
     application.run_polling()
