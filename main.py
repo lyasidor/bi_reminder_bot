@@ -5,7 +5,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 load_dotenv() 
 
-TOKEN = os.getenv("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o")  # Получаем токен из переменной окружения
+TOKEN = "7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o"  # Получаем токен из переменной окружения
 
 # Функция для команды /start
 async def start(update: Update, context):
