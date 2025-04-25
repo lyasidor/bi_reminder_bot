@@ -7,7 +7,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Шаги для ConversationHandler
-SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TASKS, BACK = range(7)
+SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TASKS = range(6)
 
 # Хранение задач (в реальной разработке лучше использовать базу данных)
 tasks = []
@@ -144,7 +144,6 @@ def main():
             ENTER_TIME: [MessageHandler(filters.TEXT, enter_time)],
             ENTER_COMMENT: [MessageHandler(filters.TEXT, enter_comment)],
             VIEW_TASKS: [MessageHandler(filters.TEXT, view_tasks)],
-            BACK: [MessageHandler(filters.TEXT, back_to_main_menu)],
         },
         fallbacks=[MessageHandler(filters.TEXT, back_to_main_menu)],
     )
@@ -155,3 +154,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
