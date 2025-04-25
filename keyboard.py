@@ -27,3 +27,17 @@ def get_back_button():
     :return: объект InlineKeyboardButton
     """
     return InlineKeyboardButton('Назад', callback_data='back')
+
+def get_task_list_buttons(task_id: int, task_name: str, task_date: str, task_time: str) -> InlineKeyboardButton:
+    """
+    Создаёт кнопку для отображения задачи в списке.
+    :param task_id: ID задачи
+    :param task_name: Название задачи
+    :param task_date: Дата задачи
+    :param task_time: Время задачи
+    :return: объект InlineKeyboardButton
+    """
+    # Формируем текст кнопки с датой и временем задачи
+    button_text = f"{task_time}, {task_date}"
+    callback_data = f"task_{task_id}"
+    return InlineKeyboardButton(button_text, callback_data=callback_data)
