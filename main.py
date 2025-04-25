@@ -1,139 +1,10 @@
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ConversationHandler, ContextTypes
-import logging
 import time
 import httpx
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 
-# Установим уровень логирования для отслеживания ошибок
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Шаги для ConversationHandler
-SELECT_ACTION, ENTER_TASK_NAME, SELECT_DATE, ENTER_TIME, ENTER_COMMENT, VIEW_TASKS = range(6)
-
-# Хранение задач (в реальной разработке лучше использовать базу данных)
-tasks = []
+# Словарь для хранения состояния пользователей
 user_progress = {}
-
-# Функция старта
-async def start(update: Update, context):
-    keyboard = [
-        [KeyboardButton("📅 Добавить задачу"), KeyboardButton("📝 Список задач")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Привет! Я помогу тебе с задачами. Выбери действие:", reply_markup=reply_markup)
-    return SELECT_ACTION
-
-# Обработка выбора действия
-async def action_handler(update: Update, context):
-    user_input = update.message.text
-    if user_input == "📅 Добавить задачу":
-        await update.message.reply_text("Введите название задачи:")
-        return ENTER_TASK_NAME
-    elif user_input == "📝 Список задач":
-        if tasks:
-            task_buttons = [
-                [KeyboardButton(f"{task['time']} | {task['date']}")]
-                for task in tasks
-            ]
-            task_buttons.append([KeyboardButton("🔙 Назад")])
-            reply_markup = ReplyKeyboardMarkup(task_buttons, resize_keyboard=True)
-            await update.message.reply_text("Список задач:", reply_markup=reply_markup)
-            return VIEW_TASKS
-        else:
-            await update.message.reply_text("У тебя нет задач.")
-            return SELECT_ACTION
-
-# Ввод названия задачи
-async def enter_task_name(update: Update, context):
-    task_name = update.message.text
-    context.user_data['task_name'] = task_name
-    await update.message.reply_text("Выбери дату задачи из предложенных:")
-    return SELECT_DATE
-
-# Выбор даты
-async def select_date(update: Update, context):
-    keyboard = [
-        [KeyboardButton("25.04.2025"), KeyboardButton("26.04.2025"), KeyboardButton("27.04.2025")],
-        [KeyboardButton("28.04.2025"), KeyboardButton("29.04.2025"), KeyboardButton("30.04.2025")],
-        [KeyboardButton("🔙 Назад")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Выберите дату:", reply_markup=reply_markup)
-    return ENTER_TIME
-
-# Ввод времени
-async def enter_time(update: Update, context):
-    user_input = update.message.text
-    if ":" in user_input and len(user_input.split(":")) == 2:
-        context.user_data['task_time'] = user_input
-        await update.message.reply_text("Если хочешь, можешь добавить комментарий, или просто нажми 'Пропустить'.")
-        return ENTER_COMMENT
-    else:
-        await update.message.reply_text("Пожалуйста, введите время в формате 'ЧЧ:ММ'.")
-
-# Ввод комментария
-async def enter_comment(update: Update, context):
-    user_input = update.message.text
-    if user_input.lower() == "пропустить":
-        context.user_data['task_comment'] = None
-    else:
-        context.user_data['task_comment'] = user_input
-
-    # Добавляем задачу в список
-    task = {
-        'name': context.user_data['task_name'],
-        'date': context.user_data['task_date'],
-        'time': context.user_data['task_time'],
-        'comment': context.user_data.get('task_comment', 'Нет комментария'),
-    }
-    tasks.append(task)
-
-    # Возвращаем на начальную страницу
-    keyboard = [
-        [KeyboardButton("📅 Добавить задачу"), KeyboardButton("📝 Список задач")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Задача добавлена! Выбери следующее действие:", reply_markup=reply_markup)
-    return SELECT_ACTION
-
-# Просмотр задач
-async def view_tasks(update: Update, context):
-    task_buttons = [
-        [KeyboardButton(f"{task['time']} | {task['date']}")]
-        for task in tasks
-    ]
-    task_buttons.append([KeyboardButton("🔙 Назад")])
-    reply_markup = ReplyKeyboardMarkup(task_buttons, resize_keyboard=True)
-    await update.message.reply_text("Выберите задачу для просмотра:", reply_markup=reply_markup)
-    return VIEW_TASKS
-
-# Удаление задачи
-async def delete_task(update: Update, context):
-    user_input = update.message.text
-    task_to_delete = None
-    for task in tasks:
-        if f"{task['time']} | {task['date']}" == user_input:
-            task_to_delete = task
-            break
-
-    if task_to_delete:
-        tasks.remove(task_to_delete)
-        await update.message.reply_text("Задача удалена!")
-    else:
-        await update.message.reply_text("Задача не найдена.")
-    
-    return VIEW_TASKS
-
-# Главное меню
-async def back_to_main_menu(update: Update, context):
-    keyboard = [
-        [KeyboardButton("📅 Добавить задачу"), KeyboardButton("📝 Список задач")]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Выберите действие:", reply_markup=reply_markup)
-    return SELECT_ACTION
 
 # Функция с повторными попытками
 async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
@@ -159,33 +30,130 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # Сообщение о сбросе прогресса и приветствие
         await send_message_with_retry(context.bot, user_id, "Привет! Я сбросил прогресс и готов работать с тобой снова.")
+        await send_message_with_retry(context.bot, user_id, "Чтобы начать, выбери одну из опций ниже:")
+
+        # Создаем клавиатуру с кнопками
+        keyboard = [
+            [KeyboardButton("Добавить задачу ✅"), KeyboardButton("Список задач 📋")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+        # Отправляем сообщение с кнопками
+        await update.message.reply_text("Что хочешь сделать?", reply_markup=reply_markup)
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {e}")
 
+# Обработчик команды /help
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    try:
+        await send_message_with_retry(context.bot, user_id, "Вот список доступных команд:\n/start - Начать взаимодействие с ботом\n/help - Получить помощь")
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка: {e}")
 
-# Основная функция
+# Обработчик кнопки "Добавить задачу"
+async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+
+    # Проверка прогресса, если нет - создаем его
+    if user_id not in user_progress:
+        user_progress[user_id] = {}
+
+    # Стартуем процесс добавления задачи
+    try:
+        user_progress[user_id]['step'] = 'enter_task_name'
+        await send_message_with_retry(context.bot, user_id, "Введите название задачи:")
+    except Exception as e:
+        await update.message.reply_text(f"Ошибка: {e}")
+
+# Обработчик кнопки "Список задач"
+async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+
+    # Проверка прогресса, если нет задач - уведомляем
+    if user_id not in user_progress or 'tasks' not in user_progress[user_id] or len(user_progress[user_id]['tasks']) == 0:
+        await send_message_with_retry(context.bot, user_id, "У вас нет задач. Добавьте их с помощью кнопки 'Добавить задачу'.")
+    else:
+        tasks = user_progress[user_id]['tasks']
+        task_list = "\n".join([f"{task['name']} - {task['time']}" for task in tasks])
+        await send_message_with_retry(context.bot, user_id, f"Ваши задачи:\n{task_list}")
+
+# Обработчик сообщений (например, для ввода названия задачи)
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+
+    if user_id not in user_progress:
+        user_progress[user_id] = {}
+
+    step = user_progress[user_id].get('step')
+
+    # Ввод названия задачи
+    if step == 'enter_task_name':
+        task_name = update.message.text
+        user_progress[user_id]['task_name'] = task_name
+        user_progress[user_id]['step'] = 'enter_task_date'
+        await send_message_with_retry(context.bot, user_id, f"Задача '{task_name}' добавлена. Теперь выбери дату:")
+
+        # Отправляем пользователю кнопки с датами
+        # Например, две недели вперед
+        keyboard = [
+            [KeyboardButton("25.04.2025"), KeyboardButton("26.04.2025"), KeyboardButton("27.04.2025")],
+            [KeyboardButton("28.04.2025"), KeyboardButton("29.04.2025"), KeyboardButton("30.04.2025")]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text("Выберите дату:", reply_markup=reply_markup)
+
+    # Ввод времени задачи
+    elif step == 'enter_task_date':
+        selected_date = update.message.text
+        user_progress[user_id]['date'] = selected_date
+        user_progress[user_id]['step'] = 'enter_task_time'
+        await send_message_with_retry(context.bot, user_id, f"Вы выбрали дату {selected_date}. Теперь введите время в формате 'ЧЧ:ММ' (например, 18:30):")
+
+    # Ввод времени задачи
+    elif step == 'enter_task_time':
+        task_time = update.message.text
+        if not task_time:
+            await send_message_with_retry(context.bot, user_id, "Пожалуйста, введите время в формате 'ЧЧ:ММ'.")
+        else:
+            user_progress[user_id]['time'] = task_time
+            user_progress[user_id]['step'] = 'enter_task_comment'
+            await send_message_with_retry(context.bot, user_id, f"Вы выбрали время {task_time}. Теперь введите комментарий (или пропустите):")
+
+    # Ввод комментария
+    elif step == 'enter_task_comment':
+        task_comment = update.message.text
+        user_progress[user_id]['comment'] = task_comment
+        user_progress[user_id]['step'] = 'task_added'
+
+        # Добавляем задачу в список задач
+        if 'tasks' not in user_progress[user_id]:
+            user_progress[user_id]['tasks'] = []
+
+        user_progress[user_id]['tasks'].append({
+            'name': user_progress[user_id]['task_name'],
+            'date': user_progress[user_id]['date'],
+            'time': user_progress[user_id]['time'],
+            'comment': user_progress[user_id].get('comment', '')
+        })
+
+        await send_message_with_retry(context.bot, user_id, "Задача добавлена!")
+        user_progress[user_id] = {}  # Сбрасываем прогресс
+        await start(update, context)
+
+# Главная функция для запуска бота
 def main():
-    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
+    application = Application.builder().token("YOUR_TOKEN").build()
 
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start), MessageHandler(filters.TEXT, action_handler)],
-        states={
-            SELECT_ACTION: [MessageHandler(filters.TEXT, action_handler)],
-            ENTER_TASK_NAME: [MessageHandler(filters.TEXT, enter_task_name)],
-            SELECT_DATE: [MessageHandler(filters.TEXT, select_date)],
-            ENTER_TIME: [MessageHandler(filters.TEXT, enter_time)],
-            ENTER_COMMENT: [MessageHandler(filters.TEXT, enter_comment)],
-            VIEW_TASKS: [MessageHandler(filters.TEXT, view_tasks)],
-        },
-        fallbacks=[MessageHandler(filters.TEXT, back_to_main_menu)],
-    )
-
-    application.add_handler(conv_handler)
-
+    # Обработчики
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("add_task", add_task))
+    application.add_handler(CommandHandler("list_tasks", list_tasks))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
+    # Запуск бота
     application.run_polling()
 
 if __name__ == "__main__":
     main()
-
