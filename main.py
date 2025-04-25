@@ -1,7 +1,12 @@
 import time
 import httpx
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+# Включение логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Словарь для хранения состояния пользователей
 user_progress = {}
@@ -13,6 +18,7 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
             await bot.send_message(chat_id=chat_id, text=text)
             break  # Успех, выходим из цикла
         except httpx.RequestError as e:
+            logger.error(f"Ошибка при отправке сообщения: {e}")
             if attempt < retries - 1:
                 time.sleep(delay * (2 ** attempt))  # Экспоненциальное увеличение задержки
                 continue  # Пытаемся снова
@@ -22,7 +28,7 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
 # Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
-    
+
     # Сбрасываем прогресс пользователя
     if user_id in user_progress:
         del user_progress[user_id]
@@ -41,6 +47,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Отправляем сообщение с кнопками
         await update.message.reply_text("Что хочешь сделать?", reply_markup=reply_markup)
     except Exception as e:
+        logger.error(f"Ошибка при выполнении команды /start: {e}")
         await update.message.reply_text(f"Ошибка: {e}")
 
 # Обработчик команды /help
@@ -49,6 +56,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await send_message_with_retry(context.bot, user_id, "Вот список доступных команд:\n/start - Начать взаимодействие с ботом\n/help - Получить помощь")
     except Exception as e:
+        logger.error(f"Ошибка при выполнении команды /help: {e}")
         await update.message.reply_text(f"Ошибка: {e}")
 
 # Обработчик кнопки "Добавить задачу"
@@ -64,6 +72,7 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_progress[user_id]['step'] = 'enter_task_name'
         await send_message_with_retry(context.bot, user_id, "Введите название задачи:")
     except Exception as e:
+        logger.error(f"Ошибка при добавлении задачи: {e}")
         await update.message.reply_text(f"Ошибка: {e}")
 
 # Обработчик кнопки "Список задач"
@@ -143,7 +152,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Главная функция для запуска бота
 def main():
-    application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o").build()
+    application = Application.builder().token("YOUR_TOKEN").build()
 
     # Обработчики
     application.add_handler(CommandHandler("start", start))
