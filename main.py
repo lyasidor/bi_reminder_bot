@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def main():
+def main():
     # Создаем экземпляр приложения
     application = Application.builder().token('7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o').build()
 
@@ -31,10 +31,9 @@ async def main():
     application.add_handler(conv_handler)
     application.add_handler(CallbackQueryHandler(handle_button_click))
 
-    # Запускаем бота (асинхронно)
+    # Запускаем бота (asynchronous)
     application.run_polling()
 
 # Если код запускается напрямую
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(main())
+    main()
