@@ -1,25 +1,19 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup
 
-# Клавиатура для основного меню
+# Главное меню
 def start_keyboard():
-    keyboard = [
-        [KeyboardButton('Показать задачи')],
-        [KeyboardButton('Добавить задачу')]
-    ]
-    return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+    return ReplyKeyboardMarkup([["Добавить задачу", "Список задач"]], resize_keyboard=True)
 
-# Клавиатура для выбора действия с задачей
-def task_action_keyboard():
-    keyboard = [
-        [InlineKeyboardButton('Изменить задачу', callback_data='edit_task')],
-        [InlineKeyboardButton('Удалить задачу', callback_data='delete_task')]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+# Клавиатура для выбора даты
+def task_date_keyboard():
+    two_weeks_from_now = [datetime.date.today() + datetime.timedelta(days=i) for i in range(14)]
+    buttons = [[f"{date.strftime('%d.%m.%Y')}" for date in two_weeks_from_now[i:i+3]] for i in range(0, len(two_weeks_from_now), 3)]
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
-# Клавиатура для подтверждения действия (например, подтверждения удаления)
-def confirmation_keyboard():
-    keyboard = [
-        [InlineKeyboardButton('Да', callback_data='yes')],
-        [InlineKeyboardButton('Нет', callback_data='no')]
-    ]
-    return InlineKeyboardMarkup(keyboard)
+# Клавиатура для выбора времени
+def task_time_keyboard():
+    return ReplyKeyboardMarkup([["16:00", "18:00", "20:00"]], resize_keyboard=True)
+
+# Клавиатура для пропуска
+def cancel_keyboard():
+    return ReplyKeyboardMarkup([["Пропустить"]], resize_keyboard=True)

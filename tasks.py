@@ -1,32 +1,15 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 import datetime
 
-Base = declarative_base()
+tasks = {}  # Здесь будут храниться задачи
 
-class Task(Base):
-    __tablename__ = 'tasks'
+def add_task(task_data):
+    task_id = len(tasks) + 1
+    tasks[task_id] = task_data
+    return task_id
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    due_date = Column(DateTime, nullable=False)
-    reminder_time = Column(Integer, nullable=False)  # В минутах
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+def get_task(task_id):
+    return tasks.get(task_id)
 
-# Создаем подключение к базе данных
-engine = create_engine('sqlite:///tasks.db')  # Поменяйте на вашу строку подключения
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Создание таблиц (если они еще не созданы)
-Base.metadata.create_all(engine)
-
-def add_task_to_db(task_name, due_date, reminder_time):
-    new_task = Task(name=task_name, due_date=due_date, reminder_time=reminder_time)
-    session.add(new_task)
-    session.commit()
-    return new_task
-
-def get_all_tasks():
-    return session.query(Task).all()
+def delete_task(task_id):
+    if task_id in tasks:
+        del tasks[task_id]

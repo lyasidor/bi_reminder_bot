@@ -1,40 +1,65 @@
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
+from keyboards import start_keyboard, task_date_keyboard, task_time_keyboard, cancel_keyboard
+from states import STATES
+import datetime
+import pytz
 
-# Функция для команды /start
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Привет! Я ваш напоминатель. Используйте /help для получения информации.")
+# Стартовая команда
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+    await update.message.reply_text(
+        f"Привет, {user.first_name}! Я твой напоминалка-бот. 😊\nВыбери действие:",
+        reply_markup=start_keyboard()
+    )
+    return STATES.MAIN
 
-# Функция для команды /help
-async def help_command(update: Update, context: CallbackContext):
-    await update.message.reply_text("""
-    Вот список доступных команд:
-    /start - Приветственное сообщение
-    /help - Помощь
-    /list_tasks - Показать все задачи
-    /add_task - Добавить новую задачу
-    """)
-
-# Функция для команды /list_tasks (отображает список задач)
-async def list_tasks(update: Update, context: CallbackContext):
-    # Пример вывода задач (реально вам нужно будет вытягивать задачи из базы данных)
-    tasks = ["Задача 1", "Задача 2", "Задача 3"]
-    tasks_list = "\n".join(tasks) if tasks else "Нет задач."
-    await update.message.reply_text(f"Ваши задачи:\n{tasks_list}")
-
-# Функция для команды /add_task (добавление задачи)
-async def add_task(update: Update, context: CallbackContext):
-    # Попросим пользователя ввести название задачи
+# Добавление задачи (этапы)
+async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Введите название задачи:")
+    return STATES.TASK_NAME
 
-    # Логика для обработки введенной задачи будет здесь.
-    # Можно добавить дополнительные шаги для получения даты и времени.
-    
-# Дополнительная обработка сообщений
-async def handle_message(update: Update, context: CallbackContext):
-    text = update.message.text.lower()
-    # Дополнительная логика для обработки текстовых сообщений.
-    if "напоминай" in text:
-        await update.message.reply_text("Ок, я буду напоминать.")
-    else:
-        await update.message.reply_text("Я не совсем понял, что вы хотите. Попробуйте /help.")
+# Список задач
+async def list_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Заменить на реальную логику извлечения задач
+    tasks = ["Задача 1", "Задача 2"]
+    response = "\n".join([f"{i+1}. {task}" for i, task in enumerate(tasks)])
+    await update.message.reply_text(response, reply_markup=start_keyboard())
+    return STATES.MAIN
+
+# Ввод названия задачи
+async def task_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['task_name'] = update.message.text
+    await update.message.reply_text("Выберите дату для задачи:", reply_markup=task_date_keyboard())
+    return STATES.TASK_DATE
+
+# Ввод даты задачи
+async def task_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['task_date'] = update.message.text
+    await update.message.reply_text("Введите время для задачи (формат: ЧЧ:ММ):")
+    return STATES.TASK_TIME
+
+# Ввод времени задачи
+async def task_time(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    task_time_str = update.message.text.strip()
+    try:
+        task_time = datetime.datetime.strptime(task_time_str, "%H:%M")
+        context.user_data['task_time'] = task_time
+        await update.message.reply_text("Добавьте комментарий (или напишите 'Пропустить'):")
+        return STATES.TASK_COMMENT
+    except ValueError:
+        await update.message.reply_text("Неверный формат времени! Попробуйте снова.")
+        return STATES.TASK_TIME
+
+# Ввод комментария к задаче
+async def task_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    comment = update.message.text if update.message.text.lower() != 'пропустить' else ""
+    context.user_data['task_comment'] = comment
+    # Сохраняем задачу (будет реализовано в tasks.py)
+    await update.message.reply_text(f"Задача '{context.user_data['task_name']}' создана!")
+    return STATES.MAIN
+
+# Отмена
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Отменено!", reply_markup=start_keyboard())
+    return STATES.MAIN

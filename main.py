@@ -1,38 +1,32 @@
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler
+from handlers import start, add_task, list_tasks, task_name, task_date, task_time, task_comment, cancel
+from states import STATES
 
-# Функция для команды /start
-async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Привет! Я ваш напоминатель. Используйте /help для получения информации.")
+async def main():
+    # Создание приложения с токеном бота
+    application = Application.builder().token('YOUR_BOT_API_KEY').build()
 
-# Функция для команды /help
-async def help_command(update: Update, context: CallbackContext):
-    await update.message.reply_text("""
-    Вот список доступных команд:
-    /start - Приветственное сообщение
-    /help - Помощь
-    /list_tasks - Показать все задачи
-    /add_task - Добавить новую задачу
-    """)
+    # Обработчики команд
+    application.add_handler(CommandHandler("start", start))
 
-# Функция для команды /list_tasks (отображает список задач)
-async def list_tasks(update: Update, context: CallbackContext):
-    # Пример вывода задач
-    tasks = ["Задача 1", "Задача 2", "Задача 3"]
-    tasks_list = "\n".join(tasks) if tasks else "Нет задач."
-    await update.message.reply_text(f"Ваши задачи:\n{tasks_list}")
+    # Обработчики задач
+    conversation_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            STATES.TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_name)],
+            STATES.TASK_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_date)],
+            STATES.TASK_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_time)],
+            STATES.TASK_COMMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, task_comment)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)]
+    )
 
-# Функция для команды /add_task (добавление задачи)
-async def add_task(update: Update, context: CallbackContext):
-    # Попросим пользователя ввести название задачи
-    await update.message.reply_text("Введите название задачи:")
-    # Логика для обработки введенной задачи будет здесь.
+    application.add_handler(conversation_handler)
 
-# Дополнительная обработка сообщений
-async def handle_message(update: Update, context: CallbackContext):
-    text = update.message.text.lower()
-    # Дополнительная логика для обработки текстовых сообщений.
-    if "напоминай" in text:
-        await update.message.reply_text("Ок, я буду напоминать.")
-    else:
-        await update.message.reply_text("Я не совсем понял, что вы хотите. Попробуйте /help.")
+    # Запуск бота
+    await application.run_polling()
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
