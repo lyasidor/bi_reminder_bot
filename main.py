@@ -37,4 +37,3 @@ async def main():
 # Если код запускается напрямую
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(main())  # Убираем этот вызов
