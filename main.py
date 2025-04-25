@@ -6,9 +6,10 @@ from handlers import task_name, task_date, time, task_comment
 TASK_NAME, TASK_DATE, TASK_TIME, TASK_COMMENT = range(4)
 
 def main():
+    # Создаем приложение с токеном
     application = Application.builder().token('7777339725:AAHd7AkbFBYRrcUl4wwGdbDsKvBo0b0FMGk').build()
 
-    # Обработчики
+    # Создаем обработчик для команд
     conversation_handler = ConversationHandler(
         entry_points=[CommandHandler('start', task_name)],
 
@@ -22,10 +23,11 @@ def main():
         fallbacks=[],
     )
 
-    try:
-        application.run_polling()
-    except Exception as e:
-        logging.error(f"Произошла ошибка: {e}")
+    # Добавляем обработчик в приложение
+    application.add_handler(conversation_handler)
+
+    # Запускаем бота в режиме polling
+    application.run_polling()
 
 if __name__ == '__main__':
     main()

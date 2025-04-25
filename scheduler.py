@@ -1,6 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 
-# Планировщик
+# Планировщик задач
 scheduler = BackgroundScheduler()
 
 def start_scheduler():
