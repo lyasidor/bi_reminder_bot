@@ -164,8 +164,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     application = Application.builder().token("7447545827:AAFf6HxnyeZRhbEGAPpMsS5jDwjzh-AO81o")
 
-    # Добавляем обработчики через add_handlers
-    application.add_handlers([
+    # Добавляем обработчики через add_handler
+    application.add_handler([
         CommandHandler("start", start),
         CommandHandler("help", help_command),
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message),
