@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler, CallbackQueryHandler
-from handlers import task_name, task_date, time, task_comment, show_tasks, delete_task, start, back
+from handlers import task_name, task_date, time, task_comment, show_tasks, delete_task, start
 from database import add_task_to_db, get_tasks_from_db, delete_task_from_db
 from keyboard import get_task_buttons, get_task_list_buttons
 
