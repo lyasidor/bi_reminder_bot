@@ -1,8 +1,7 @@
 import time
-import httpx
 import logging
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 # Включение логирования
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +16,7 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
         try:
             await bot.send_message(chat_id=chat_id, text=text)
             break  # Успех, выходим из цикла
-        except httpx.RequestError as e:
+        except Exception as e:
             logger.error(f"Ошибка при отправке сообщения: {e}")
             if attempt < retries - 1:
                 time.sleep(delay * (2 ** attempt))  # Экспоненциальное увеличение задержки
