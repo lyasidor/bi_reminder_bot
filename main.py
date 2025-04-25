@@ -22,8 +22,10 @@ def main():
         fallbacks=[],
     )
 
-    application.add_handler(conversation_handler)
-    application.run_polling()
+    try:
+        application.run_polling()
+    except Exception as e:
+        logging.error(f"Произошла ошибка: {e}")
 
 if __name__ == '__main__':
     main()
