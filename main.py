@@ -150,8 +150,8 @@ async def send_message_with_retry(bot, chat_id, text, retries=5, delay=2):
 # Обработчик команды /start
 async def start(update, context):
     try:
-        # Теперь передаем chat_id и текст в send_message_with_retry
-        await send_message_with_retry(update.message.bot, update.message.chat_id, "Привет! Я готов работать.")
+        # Теперь используем context.bot для отправки сообщения
+        await send_message_with_retry(context.bot, update.message.chat_id, "Привет! Я готов работать.")
     except Exception as e:
         await update.message.reply_text(f"Ошибка: {e}")
 
