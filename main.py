@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ConversationHandler
 from handlers import start, handle_button_click, handle_text
 from states import ADD_TASK, CHOOSE_DATE, ENTER_TIME, ENTER_COMMENT, LIST_TASKS
 from keyboard import start_keyboard, back_button
@@ -17,10 +17,10 @@ def main():
     conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(start, pattern='^start$')],
         states={
-            ADD_TASK: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
+            ADD_TASK: [MessageHandler(filters.text & ~filters.command, handle_text)],
             CHOOSE_DATE: [CallbackQueryHandler(handle_button_click, pattern='^date_')],
-            ENTER_TIME: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
-            ENTER_COMMENT: [MessageHandler(Filters.text & ~Filters.command, handle_text)],
+            ENTER_TIME: [MessageHandler(filters.text & ~filters.command, handle_text)],
+            ENTER_COMMENT: [MessageHandler(filters.text & ~filters.command, handle_text)],
             LIST_TASKS: [CallbackQueryHandler(handle_button_click, pattern='^task_')]
         },
         fallbacks=[],
