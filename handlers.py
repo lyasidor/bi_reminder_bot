@@ -1,7 +1,7 @@
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CommandHandler, filters
 from tasks import tasks, get_new_task_id, get_local_time, generate_date_keyboard, get_timezone_by_location
-from scheduler import plan_reminder
+from sсheduler import plan_reminder
 
 TASK_NAME, DATE, TIME, REMINDER, COMMENT = range(5)
 
